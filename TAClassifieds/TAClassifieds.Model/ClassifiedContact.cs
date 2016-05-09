@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -14,11 +13,8 @@ namespace TAClassifieds.Model
     {
         [Key]
         public int ContactId { get; set; }
-        [DisplayName("Name*")]
         public string ContactName { get; set; }
-        [DisplayName("Phone")]
         public string ContactPhone { get; set; }
-        [DisplayName("City*")]
         public string ContactCity { get; set; }
         public int ClassifiedId { get; set; }
 

@@ -13,7 +13,9 @@ namespace TAClassifieds.Model
     {
         [Key]
         public System.Guid UserId { get; set; }
+        [DataType(DataType.EmailAddress)]
         public string Email { get; set; }
+        [DataType(DataType.Password)]           
         public string UPassword { get; set; }
         [Column("First Name")]
         public string First_Name { get; set; }
@@ -32,7 +34,6 @@ namespace TAClassifieds.Model
         public Nullable<System.DateTime> CreatedDate { get; set; }
         [Column("Country")]
         public Nullable<int> CountryId { get; set; }
-    
         public virtual ICollection<Classified> Classified { get; set; }
         public virtual Country Country { get; set; }
     }
