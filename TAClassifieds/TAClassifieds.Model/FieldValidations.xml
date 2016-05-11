@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--<Validations>
+  <Field>
+    <Name>First_Name</Name>
+    <MaxLength>7</MaxLength>    
+    <RegEx>^[a-zA-Z]</RegEx>
+    <RegExErrorMessage>Invalid First Name</RegExErrorMessage>
+    <RequiredErrorMessage>Please enter the First Name </RequiredErrorMessage>
+    <RangeErrorMessage>Invalid First Name</RangeErrorMessage>
+  </Field>
+  <Field>
+    <Name>Last_Name</Name>
+    <MaxLength>7</MaxLength>
+    <RegEx>^[a-zA-Z]</RegEx>
+    <RegExErrorMessage>Invalid Last Name</RegExErrorMessage>
+    <RequiredErrorMessage>Please enter the Last Name </RequiredErrorMessage>
+    <RangeErrorMessage>Invalid Last Name</RangeErrorMessage>
+  </Field>
+</Validations>-->
+
+<Validators>
+  <Validator Type="UserValidation">
+    <Property Name="First_Name" Required="1" Visible="1" ErrorMessage="Enter a first name." RegularExpression="^[a-zA-Z]" />
+    <Property Name="Last_Name" Required="1" Visible="1" ErrorMessage="Enter a last name." RegularExpression="^[a-zA-Z]" />
+  </Validator>
+</Validators>

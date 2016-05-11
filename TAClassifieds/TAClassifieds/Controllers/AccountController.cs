@@ -14,10 +14,11 @@ using TAClassifieds.Models;
 using System.Text;
 using System.Security.Cryptography;
 using System.Net.Mail;
+using TAClassifieds.BAL;
 
 namespace TAClassifieds.Controllers
 {
-    [Authorize]
+
     public class AccountController : Controller
     {
         public AccountController()
@@ -48,30 +49,48 @@ namespace TAClassifieds.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Login(LoginViewModel model, string returnUrl)
-        {
-
-            UnitOfWork uw = new UnitOfWork();
-            var tab = uw.CategoryRepository.Get().ToList();
-
-            ////add category
-            //var cat = new Category() {CategoryName = "bla bla", CategoryImage = "img"};
-          
-            //uw.CategoryRepository.Insert(cat);
-            //uw.Save();
-            
-            if (ModelState.IsValid)
+        public ActionResult Login(User model, string returnUrl,bool Rememberme=false)
+        {         
+           if (model.Email!=null&&model.UPassword!=null&& Rememberme!=false)
             {
-                var user = await UserManager.FindAsync(model.UserName, model.Password);
-                if (user != null)
+                //var user = await UserManager.FindAsync(model.Email, model.UPassword);
+                AccountBL userverification = new AccountBL();
+                if (userverification.UserVerification(model))
                 {
-                    await SignInAsync(user, model.RememberMe);
-                    return RedirectToLocal(returnUrl);
+                    AccountBL loggedinuser = new AccountBL();
+                    bool status = loggedinuser.UserProfileStatus(model.Email);
+                    if (status)
+                    {
+                        return RedirectToLocal(returnUrl);
+                    }
+                    else
+                    {
+                       // ViewBag.UpdationMessage = "Please update your profile to proceed further";
+                        return RedirectToAction("UpdateProfile","Account", new { email = model.Email });
+                    }
                 }
                 else
                 {
-                    ModelState.AddModelError("", "Invalid username or password.");
+                    ViewBag.ErrorMsg = "Invalid credentials";
                 }
+
+                //if (user != null)
+                //{
+                //    await SignInAsync(user, model.RememberMe);
+                //AccountBL loggedinuser = new AccountBL();
+                //bool status = loggedinuser.UserProfileStatus(model.Email);
+                //if (status)
+                //{
+                //    return RedirectToLocal(returnUrl);
+                //}
+                //else
+                //{
+                //    ViewBag.UpdationMessage = "Please update your profile to proceed further";
+                //    return RedirectToAction("UpdateProfile",model.Email);
+                //}
+                //    return RedirectToLocal(returnUrl);
+                //}
+
             }
 
             // If we got this far, something failed, redisplay form
@@ -95,15 +114,11 @@ namespace TAClassifieds.Controllers
             {
                 if (model.UPassword.Equals(ConfirmPassword))
                 {
-                    UnitOfWork uw = new UnitOfWork();
-                    IEnumerable<User> u = uw.UserRepository.Get(c => c.Email == model.Email);
-                    if (u.Count() == 0)
+                    AccountBL newuser = new AccountBL();
+                    bool status=newuser.UserRegistration(model);                   
+                    if (status)
                     {
-                        string encryptedpwd = Encryption(model.UPassword);
-                        var newuser = new User() { Email = model.Email, UPassword = encryptedpwd, UserId = Guid.NewGuid(), CreatedDate = DateTime.UtcNow };
-                        var insertedUser = uw.UserRepository.Insert(newuser);
-                        uw.Save();
-                        AccountActivation(insertedUser);
+                        ViewBag.Email = "Confirmation mail has been sent to your given Email.";
                         return View();
                     }
                     else
@@ -120,62 +135,33 @@ namespace TAClassifieds.Controllers
             }
             return View(model);
         }
-        private string Encryption(string data)
-        {
-            byte[] bytes = Encoding.Unicode.GetBytes(data);
-            byte[] inArray = HashAlgorithm.Create("SHA1").ComputeHash(bytes);
-            return Convert.ToBase64String(inArray);
-        }
-
-        private void AccountActivation(User model)
-        {
-            MailMessage mailmessage = new MailMessage();
-            mailmessage.IsBodyHtml = true;
-            string ActivationUrl = Server.HtmlEncode("http://localhost:57864/Account/Confirmation" + "?id=" + model.UserId);
-            mailmessage.Subject = "Confirmation email for account activation- TA Classifieds";
-            mailmessage.Body = "Hi," + "!\n" + "Please <a href='" + ActivationUrl + "'>click here</a> the following link to activate your account." + "!\n" + "TA Classifieds.";
-            mailmessage.From = new MailAddress("techaspectclassifieds@gmail.com");
-            mailmessage.To.Add(model.Email);
-            SmtpClient smtp = new SmtpClient();
-            smtp.Send(mailmessage);
-            ViewBag.Email = "Confirmation mail has been sent to your given Email.";
-        }
-
+        
         [AllowAnonymous]
         public ActionResult Confirmation()
         {
-            UnitOfWork uw = new UnitOfWork();
-            User op = new User();
-            op.UserId = Guid.Parse(Request.QueryString["id"]);
-            op.IsVerified = true;
-            uw.UserRepository.Update(op);
-            uw._context.Users.Attach(op);
-            var entry = uw._context.Entry(op);
-            entry.Property(e => e.IsVerified).IsModified = true;
-            uw.Save();
+            Guid UserId = Guid.Parse(Request.QueryString["id"]);
+            AccountBL confirmeduser = new AccountBL();
+            confirmeduser.Confirmation(UserId);            
             return RedirectToAction("Login", "Account");
         }
         //[ValidateAntiForgeryToken]
-        [AllowAnonymous]
-        public ActionResult UpdateProfile()
+        //[AllowAnonymous]
+
+        [HttpGet]
+        public ActionResult UpdateProfile(String email)
         {
+            ViewData["email"] = email;
             return View();
         }
-        [HttpPost]
-        public ActionResult UpdateProfile(User profile)
-        {
-            UnitOfWork uw = new UnitOfWork();
-            User op = new User();
-            op.UserId = Guid.Parse(Request.QueryString["id"]);
-            op.Address1 = profile.Address1;
-            op.Address2 = profile.Address2;
-            op.City = profile.City;
-            op.Country = profile.Country;
-            op.DOB = profile.DOB;
-            op.First_Name = profile.First_Name;
-            op.Gender = profile.Gender;
-            return RedirectToAction("Index", "Home");
 
+        
+        [HttpPost]        
+        public ActionResult UpdateProfile(User profile, string email)
+        {
+            profile.Email = email;
+            AccountBL updateuser = new AccountBL();
+            updateuser.UpdateProfile(profile);
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpPost]
